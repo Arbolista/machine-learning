@@ -34,7 +34,7 @@ def calculate_safety(data):
 			return ("C", "#EEC700")
 		else: # Minor violation
 			minor = data['actions'].apply(lambda x: ast.literal_eval(x)[1]).sum()
-			if minor >= len(testing_data)/2: # Minor violation in at least half of the trials
+			if minor >= len(data)/2: # Minor violation in at least half of the trials
 				return ("B", "green")
 			else:
 				return ("A", "green")
@@ -69,23 +69,23 @@ def plot_trials(csv):
 		print "Not enough data collected to create a visualization."
 		print "At least 20 trials are required."
 		return
-	
+
 	# Create additional features
-	data['average_reward'] = pd.rolling_mean(data['net_reward'] / (data['initial_deadline'] - data['final_deadline']), 10)
-	data['reliability_rate'] = pd.rolling_mean(data['success']*100, 10)  # compute avg. net reward with window=10
+	data['average_reward'] = (data['net_reward'] / (data['initial_deadline'] - data['final_deadline'])).rolling(window=10, center=False).mean()
+	data['reliability_rate'] = (data['success']*100).rolling(window=10, center=False).mean()  # compute avg. net reward with window=10
 	data['good_actions'] = data['actions'].apply(lambda x: ast.literal_eval(x)[0])
-	data['good'] = pd.rolling_mean(data['good_actions'] * 1.0 / \
-		(data['initial_deadline'] - data['final_deadline']), 10)
-	data['minor'] = pd.rolling_mean(data['actions'].apply(lambda x: ast.literal_eval(x)[1]) * 1.0 / \
-		(data['initial_deadline'] - data['final_deadline']), 10)
-	data['major'] = pd.rolling_mean(data['actions'].apply(lambda x: ast.literal_eval(x)[2]) * 1.0 / \
-		(data['initial_deadline'] - data['final_deadline']), 10)
-	data['minor_acc'] = pd.rolling_mean(data['actions'].apply(lambda x: ast.literal_eval(x)[3]) * 1.0 / \
-		(data['initial_deadline'] - data['final_deadline']), 10)
-	data['major_acc'] = pd.rolling_mean(data['actions'].apply(lambda x: ast.literal_eval(x)[4]) * 1.0 / \
-		(data['initial_deadline'] - data['final_deadline']), 10)
-	data['epsilon'] = data['parameters'].apply(lambda x: ast.literal_eval(x)['e']) 
-	data['alpha'] = data['parameters'].apply(lambda x: ast.literal_eval(x)['a']) 
+	data['good'] = (data['good_actions'] * 1.0 / \
+		(data['initial_deadline'] - data['final_deadline'])).rolling(window=10, center=False).mean()
+	data['minor'] = (data['actions'].apply(lambda x: ast.literal_eval(x)[1]) * 1.0 / \
+		(data['initial_deadline'] - data['final_deadline'])).rolling(window=10, center=False).mean()
+	data['major'] = (data['actions'].apply(lambda x: ast.literal_eval(x)[2]) * 1.0 / \
+		(data['initial_deadline'] - data['final_deadline'])).rolling(window=10, center=False).mean()
+	data['minor_acc'] = (data['actions'].apply(lambda x: ast.literal_eval(x)[3]) * 1.0 / \
+		(data['initial_deadline'] - data['final_deadline'])).rolling(window=10, center=False).mean()
+	data['major_acc'] = (data['actions'].apply(lambda x: ast.literal_eval(x)[4]) * 1.0 / \
+		(data['initial_deadline'] - data['final_deadline'])).rolling(window=10, center=False).mean()
+	data['epsilon'] = data['parameters'].apply(lambda x: ast.literal_eval(x)['e'])
+	data['alpha'] = data['parameters'].apply(lambda x: ast.literal_eval(x)['a'])
 
 
 	# Create training and testing subsets
@@ -98,7 +98,7 @@ def plot_trials(csv):
 	###############
 	### Average step reward plot
 	###############
-	
+
 	ax = plt.subplot2grid((6,6), (0,3), colspan=3, rowspan=2)
 	ax.set_title("10-Trial Rolling Average Reward per Action")
 	ax.set_ylabel("Reward per Action")
@@ -132,16 +132,16 @@ def plot_trials(csv):
 
 	else:
 		ax.axis('off')
-		ax.text(0.52, 0.30, "Simulation completed\nwith learning disabled.", fontsize=24, ha='center', style='italic')	
+		ax.text(0.52, 0.30, "Simulation completed\nwith learning disabled.", fontsize=24, ha='center', style='italic')
 
 
 	###############
 	### Bad Actions Plot
 	###############
-	
+
 	actions = training_data[['trial','good', 'minor','major','minor_acc','major_acc']].dropna()
 	maximum = (1 - actions['good']).values.max()
-	
+
 	ax = plt.subplot2grid((6,6), (0,0), colspan=3, rowspan=4)
 	ax.set_title("10-Trial Rolling Relative Frequency of Bad Actions")
 	ax.set_ylabel("Relative Frequency")
@@ -157,14 +157,14 @@ def plot_trials(csv):
 	ax.plot(actions['trial'], actions['major'], color='orange', label='Major Violation', linewidth=2)
 	ax.plot(actions['trial'], actions['minor_acc'], color='red', label='Minor Accident', linestyle='dashed')
 	ax.plot(actions['trial'], actions['major_acc'], color='red', label='Major Accident', linewidth=2)
-	
+
 	ax.legend(loc='upper right', fancybox=True, fontsize=10)
 
 
 	###############
 	### Rolling Success-Rate plot
 	###############
-	
+
 	ax = plt.subplot2grid((6,6), (4,0), colspan=4, rowspan=2)
 	ax.set_title("10-Trial Rolling Rate of Reliability")
 	ax.set_ylabel("Rate of Reliability")
@@ -201,7 +201,7 @@ def plot_trials(csv):
 		ax.text(0.40, 0, "{}".format(reliability_rating), fontsize=40, ha='center', color=reliability_color)
 
 	else:
-		ax.text(0.36, 0.30, "Simulation completed\nwith testing disabled.", fontsize=20, ha='center', style='italic')	
+		ax.text(0.36, 0.30, "Simulation completed\nwith testing disabled.", fontsize=20, ha='center', style='italic')
 
 	plt.tight_layout()
 	plt.show()
